@@ -83,196 +83,195 @@ const ctx = konn()
   })
   .done();
 
-describe('useQuery()', () => {
-  test('loading data', async () => {
-    const { client, App } = ctx;
-    function MyComponent() {
-      const query1 = client.post.byId.useQuery({
-        id: '1',
-      });
+test('loading data', async () => {
+  const { client, App } = ctx;
+  function MyComponent() {
+    const query1 = client.post.byId.useQuery({
+      id: '1',
+    });
 
-      expect(query1.trpc.path).toBe('post.byId');
+    expect(query1.trpc.path).toBe('post.byId');
 
+    // @ts-expect-error Should not exist
+    client.post.byId.useInfiniteQuery;
+    const utils = client.useUtils();
+
+    useEffect(() => {
+      utils.post.byId.invalidate();
       // @ts-expect-error Should not exist
-      client.post.byId.useInfiniteQuery;
-      const utils = client.useUtils();
+      utils.doesNotExist.invalidate();
+    }, [utils]);
 
-      useEffect(() => {
-        utils.post.byId.invalidate();
-        // @ts-expect-error Should not exist
-        utils.doesNotExist.invalidate();
-      }, [utils]);
-
-      if (!query1.data) {
-        return <>...</>;
-      }
-
-      type TData = (typeof query1)['data'];
-      expectTypeOf<TData>().toMatchTypeOf<'__result'>();
-
-      return <pre>{JSON.stringify(query1.data ?? 'n/a', null, 4)}</pre>;
+    if (!query1.data) {
+      return <>...</>;
     }
 
-    const utils = render(
-      <App>
-        <MyComponent />
-      </App>,
-    );
-    await waitFor(() => {
-      expect(utils.container).toHaveTextContent(`__result`);
-    });
+    type TData = (typeof query1)['data'];
+    expectTypeOf<TData>().toMatchTypeOf<'__result'>();
+
+    return <pre>{JSON.stringify(query1.data ?? 'n/a', null, 4)}</pre>;
+  }
+
+  const utils = render(
+    <App>
+      <MyComponent />
+    </App>,
+  );
+  await waitFor(() => {
+    expect(utils.container).toHaveTextContent(`__result`);
   });
+});
 
-  test('disabling query with skipToken', async () => {
-    const { client, App } = ctx;
-    function MyComponent() {
-      const query1 = client.post.byId.useQuery(skipToken);
+test('disabling query with skipToken', async () => {
+  const { client, App } = ctx;
+  function MyComponent() {
+    const query1 = client.post.byId.useQuery(skipToken);
 
-      type TData = (typeof query1)['data'];
-      expectTypeOf<TData>().toMatchTypeOf<'__result' | undefined>();
+    type TData = (typeof query1)['data'];
+    expectTypeOf<TData>().toMatchTypeOf<'__result' | undefined>();
 
-      return <pre>{query1.status}</pre>;
-    }
+    return <pre>{query1.status}</pre>;
+  }
 
-    const utils = render(
-      <App>
-        <MyComponent />
-      </App>,
-    );
-    await waitFor(() => {
-      expect(utils.container).toHaveTextContent(`pending`);
-    });
+  const utils = render(
+    <App>
+      <MyComponent />
+    </App>,
+  );
+  await waitFor(() => {
+    expect(utils.container).toHaveTextContent(`pending`);
   });
+});
 
-  test('conditionally enabling query with skipToken', async () => {
-    const { client, App } = ctx;
-    let onEnable: () => void;
-    function MyComponent() {
-      const [enabled, setEnabled] = React.useState(false);
-      const query1 = client.post.byId.useQuery(
-        enabled
-          ? {
-              id: '1',
-            }
-          : skipToken,
-      );
-
-      onEnable = () => {
-        setEnabled(true);
-      };
-
-      return (
-        <pre>
-          {query1.status}:{query1.isFetching ? 'fetching' : 'notFetching'}
-        </pre>
-      );
-    }
-
-    const utils = render(
-      <App>
-        <MyComponent />
-      </App>,
+test('conditionally enabling query with skipToken', async () => {
+  const { client, App } = ctx;
+  let onEnable: () => void;
+  function MyComponent() {
+    const [enabled, setEnabled] = React.useState(false);
+    const query1 = client.post.byId.useQuery(
+      enabled
+        ? {
+            id: '1',
+          }
+        : skipToken,
     );
-    await waitFor(() => {
-      expect(utils.container).toHaveTextContent(`pending:notFetching`);
-    });
 
+    onEnable = () => {
+      setEnabled(true);
+    };
+
+    return (
+      <pre>
+        {query1.status}:{query1.isFetching ? 'fetching' : 'notFetching'}
+      </pre>
+    );
+  }
+
+  const utils = render(
+    <App>
+      <MyComponent />
+    </App>,
+  );
+  await waitFor(() => {
     expect(utils.container).toHaveTextContent(`pending:notFetching`);
-
-    await waitFor(() => {
-      onEnable!();
-      expect(utils.container).toHaveTextContent(`pending:fetching`);
-    });
-    await waitFor(() => {
-      expect(utils.container).toHaveTextContent(`success:notFetching`);
-    });
   });
 
-  test('data type without initialData', () => {
-    const expectation = expectTypeOf(() =>
-      ctx.client.post.byId.useQuery({ id: '1' }),
-    ).returns;
+  expect(utils.container).toHaveTextContent(`pending:notFetching`);
 
-    expectation.toMatchTypeOf<{ data: '__result' | undefined }>();
-    expectation.not.toMatchTypeOf<{ data: '__result' }>();
+  await waitFor(() => {
+    onEnable!();
+    expect(utils.container).toHaveTextContent(`pending:fetching`);
   });
+  await waitFor(() => {
+    expect(utils.container).toHaveTextContent(`success:notFetching`);
+  });
+});
 
-  test('data type with initialData', () => {
-    const expectation = expectTypeOf(() =>
-      ctx.client.post.byId.useQuery(
-        { id: '1' },
-        {
-          initialData: '__result',
+test('data type without initialData', () => {
+  const expectation = expectTypeOf(() =>
+    ctx.client.post.byId.useQuery({ id: '1' }),
+  ).returns;
+
+  expectation.toMatchTypeOf<{ data: '__result' | undefined }>();
+  expectation.not.toMatchTypeOf<{ data: '__result' }>();
+});
+
+test('data type with initialData', () => {
+  const expectation = expectTypeOf(() =>
+    ctx.client.post.byId.useQuery(
+      { id: '1' },
+      {
+        initialData: '__result',
+      },
+    ),
+  ).returns;
+
+  expectation.toMatchTypeOf<{ data: '__result' }>();
+  expectation.not.toMatchTypeOf<{ data: undefined }>();
+});
+
+test('data type with conditional skipToken', () => {
+  const expectation = expectTypeOf(() =>
+    ctx.client.post.byId.useQuery(
+      Math.random() > 0.5 ? skipToken : { id: '1' },
+    ),
+  ).returns;
+
+  expectation.toMatchTypeOf<{ data: '__result' | undefined }>();
+  expectation.not.toMatchTypeOf<{ data: undefined }>();
+});
+
+test('iterable', async () => {
+  const { client, App } = ctx;
+  const states: {
+    status: string;
+    data: unknown;
+    fetchStatus: string;
+  }[] = [];
+  function MyComponent() {
+    const query1 = client.post.iterable.useQuery(undefined, {
+      trpc: {
+        context: {
+          stream: 1,
         },
-      ),
-    ).returns;
+      },
+    });
+    states.push({
+      status: query1.status,
+      data: query1.data,
+      fetchStatus: query1.fetchStatus,
+    });
+    ctx.nextIterable();
 
-    expectation.toMatchTypeOf<{ data: '__result' }>();
-    expectation.not.toMatchTypeOf<{ data: undefined }>();
-  });
+    expectTypeOf(query1.data!).toMatchTypeOf<number[]>();
 
-  test('data type with conditional skipToken', () => {
-    const expectation = expectTypeOf(() =>
-      ctx.client.post.byId.useQuery(
-        Math.random() > 0.5 ? skipToken : { id: '1' },
-      ),
-    ).returns;
-
-    expectation.toMatchTypeOf<{ data: '__result' | undefined }>();
-    expectation.not.toMatchTypeOf<{ data: undefined }>();
-  });
-
-  test('iterable', async () => {
-    const { client, App } = ctx;
-    const states: {
-      status: string;
-      data: unknown;
-      fetchStatus: string;
-    }[] = [];
-    function MyComponent() {
-      const query1 = client.post.iterable.useQuery(undefined, {
-        trpc: {
-          context: {
-            stream: 1,
-          },
-        },
-      });
-      states.push({
-        status: query1.status,
-        data: query1.data,
-        fetchStatus: query1.fetchStatus,
-      });
-      ctx.nextIterable();
-
-      expectTypeOf(query1.data!).toMatchTypeOf<number[]>();
-
-      return (
-        <pre>
-          {query1.status}:{query1.isFetching ? 'fetching' : 'notFetching'}
-        </pre>
-      );
-    }
-
-    const utils = render(
-      <App>
-        <MyComponent />
-      </App>,
+    return (
+      <pre>
+        {query1.status}:{query1.isFetching ? 'fetching' : 'notFetching'}
+      </pre>
     );
-    await waitFor(() => {
-      expect(utils.container).toHaveTextContent(`success:notFetching`);
-    });
+  }
 
-    expect(states.map((s) => [s.status, s.fetchStatus])).toEqual([
-      // initial
-      ['pending', 'fetching'],
-      // waiting 3 values
-      ['success', 'fetching'],
-      ['success', 'fetching'],
-      ['success', 'fetching'],
-      // done iterating
-      ['success', 'idle'],
-    ]);
-    expect(states).toMatchInlineSnapshot(`
+  const utils = render(
+    <App>
+      <MyComponent />
+    </App>,
+  );
+  await waitFor(() => {
+    expect(utils.container).toHaveTextContent(`success:notFetching`);
+  });
+
+  expect(states.map((s) => [s.status, s.fetchStatus])).toEqual([
+    // initial
+    ['pending', 'fetching'],
+    // waiting 3 values
+    ['success', 'fetching'],
+    ['success', 'fetching'],
+    ['success', 'fetching'],
+    // done iterating
+    ['success', 'idle'],
+  ]);
+  expect(states).toMatchInlineSnapshot(`
       Array [
         Object {
           "data": undefined,
@@ -310,154 +309,23 @@ describe('useQuery()', () => {
         },
       ]
     `);
-  });
-
-  test('using queryOptions', async () => {
-    const { client, App } = ctx;
-    function MyComponent() {
-      const queryOptions = client.post.byId.useQueryOptions({ id: '1' });
-      expect(queryOptions.trpc.path).toBe('post.byId');
-      const query1 = useQuery(queryOptions);
-
-      if (!query1.data) {
-        return <>...</>;
-      }
-
-      type TData = (typeof query1)['data'];
-      expectTypeOf<TData>().toMatchTypeOf<'__result'>();
-
-      return <pre>{JSON.stringify(query1.data ?? 'n/a', null, 4)}</pre>;
-    }
-
-    const utils = render(
-      <App>
-        <MyComponent />
-      </App>,
-    );
-    await waitFor(() => {
-      expect(utils.container).toHaveTextContent(`__result`);
-    });
-  });
 });
 
-test('useInfiniteQuery()', async () => {
-  const { App, client } = ctx;
+test('using queryOptions', async () => {
+  const { client, App } = ctx;
   function MyComponent() {
-    const trpcContext = client.useContext();
-    const query1 = client.post.list.useInfiniteQuery(
-      {},
-      {
-        getNextPageParam(lastPage) {
-          return lastPage.next;
-        },
-      },
-    );
-    expect(query1.trpc.path).toBe('post.list');
+    const queryOptions = client.post.byId.useQueryOptions({ id: '1' });
+    expect(queryOptions.trpc.path).toBe('post.byId');
+    const query1 = useQuery(queryOptions);
 
     if (!query1.data) {
       return <>...</>;
     }
 
-    expectTypeOf<
-      InfiniteData<
-        {
-          items: typeof fixtureData;
-          next?: number | undefined;
-        },
-        number | null
-      >
-    >(query1.data);
+    type TData = (typeof query1)['data'];
+    expectTypeOf<TData>().toMatchTypeOf<'__result'>();
 
-    return (
-      <>
-        <button
-          data-testid="fetchMore"
-          onClick={() => {
-            query1.fetchNextPage();
-          }}
-        >
-          Fetch more
-        </button>
-        <button
-          data-testid="prefetch"
-          onClick={async () => {
-            const fetched = await trpcContext.post.list.fetchInfinite({}, {});
-            expectTypeOf<{
-              pages: { items: typeof fixtureData; next?: number | undefined }[];
-              pageParams: (number | null)[];
-            }>(fetched);
-            expect(
-              fetched.pageParams.some((p) => typeof p === 'undefined'),
-            ).toBeFalsy();
-          }}
-        >
-          Fetch
-        </button>
-        <pre>{JSON.stringify(query1.data ?? 'n/a', null, 4)}</pre>
-      </>
-    );
-  }
-
-  const utils = render(
-    <App>
-      <MyComponent />
-    </App>,
-  );
-
-  await waitFor(() => {
-    expect(utils.container).toHaveTextContent(`[ "1" ]`);
-    expect(utils.container).toHaveTextContent(`null`);
-    expect(utils.container).not.toHaveTextContent(`undefined`);
-  });
-  await userEvent.click(utils.getByTestId('fetchMore'));
-
-  await waitFor(() => {
-    expect(utils.container).toHaveTextContent(`[ "1" ]`);
-    expect(utils.container).toHaveTextContent(`[ "2" ]`);
-  });
-});
-
-test('useInfiniteQuery() initialCursor', async () => {
-  const { App, client } = ctx;
-  function MyComponent() {
-    const query1 = client.post.list.useInfiniteQuery(
-      {},
-      {
-        getNextPageParam(lastPage) {
-          return lastPage.next;
-        },
-        initialCursor: 2,
-      },
-    );
-    expect(query1.trpc.path).toBe('post.list');
-
-    if (query1.isPending || query1.isFetching || !query1.data) {
-      return <>...</>;
-    }
-
-    expectTypeOf<
-      InfiniteData<
-        {
-          items: typeof fixtureData;
-          next?: number | undefined;
-        },
-        number | null
-      >
-    >(query1.data);
-
-    return (
-      <>
-        <button
-          data-testid="fetchMore"
-          onClick={() => {
-            query1.fetchNextPage();
-          }}
-        >
-          Fetch more
-        </button>
-        <pre>{JSON.stringify(query1.data ?? 'n/a', null, 4)}</pre>
-      </>
-    );
+    return <pre>{JSON.stringify(query1.data ?? 'n/a', null, 4)}</pre>;
   }
 
   const utils = render(
@@ -466,12 +334,6 @@ test('useInfiniteQuery() initialCursor', async () => {
     </App>,
   );
   await waitFor(() => {
-    expect(utils.container).toHaveTextContent(`[ "3" ]`);
-  });
-  await userEvent.click(utils.getByTestId('fetchMore'));
-
-  await waitFor(() => {
-    expect(utils.container).toHaveTextContent(`[ "3" ]`);
-    expect(utils.container).toHaveTextContent(`[ "4" ]`);
+    expect(utils.container).toHaveTextContent(`__result`);
   });
 });

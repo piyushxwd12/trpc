@@ -546,6 +546,55 @@ test('useInfiniteQuery() is **not** exposed if there is not cursor', () => {
   });
 });
 
+test('useInfintieQuery() initial cursor', async () => {
+  const { trpc, App } = factory;
+  let data;
+  function MyComponent() {
+    const q = trpc.paginatedPosts.useInfiniteQuery(
+      {
+        limit: 1,
+      },
+      {
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+        initialCursor: 1,
+      },
+    );
+    data = q.data;
+
+    return <>{JSON.stringify(q.data ?? null, null, 4)}</>;
+  }
+
+  const utils = render(
+    <App>
+      <MyComponent />
+    </App>,
+  );
+  await waitFor(() => {
+    expect(utils.container).not.toHaveTextContent('first post');
+    expect(utils.container).toHaveTextContent('second post');
+  });
+
+  expect(data).toMatchInlineSnapshot(`
+    Object {
+      "pageParams": Array [
+        1,
+      ],
+      "pages": Array [
+        Object {
+          "items": Array [
+            Object {
+              "createdAt": 1,
+              "id": "2",
+              "title": "second post",
+            },
+          ],
+          "nextCursor": null,
+        },
+      ],
+    }
+  `);
+});
+
 test('regression 5412: invalidating a query', async () => {
   const { trpc, App } = factory;
 
