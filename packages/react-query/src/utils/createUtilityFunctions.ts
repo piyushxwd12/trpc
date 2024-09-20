@@ -30,14 +30,14 @@ export function createUtilityFunctions<TRouter extends AnyRouter>(
     client instanceof TRPCUntypedClient ? client : getUntypedClient(client);
 
   return {
-    queryOptions: (queryKey, opts) => {
+    queryOptions: ((queryKey, opts) => {
       return queryOptions({
         ...opts,
-        initialData: opts?.initialData as any,
+        initialData: opts?.initialData,
         queryKey,
         queryFn: () => untypedClient.query(...getClientArgs(queryKey, opts)),
       });
-    },
+    }) as TRPCQueryUtils<TRouter>['queryOptions'],
 
     fetchQuery: (queryKey, opts) => {
       return queryClient.fetchQuery({
