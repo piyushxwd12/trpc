@@ -3,6 +3,8 @@ import type {
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
   DehydratedState,
+  FetchInfiniteQueryOptions,
+  FetchQueryOptions,
   InfiniteData,
   InfiniteQueryObserverSuccessResult,
   InitialDataFunction,
@@ -29,7 +31,7 @@ import type {
   AnyRouter,
   DistributiveOmit,
 } from '@trpc/server/unstable-core-do-not-import';
-import type { ReactNode } from 'react';
+import type { JSX, ReactNode } from 'react';
 import type { TRPCContextProps } from '../../internals/context';
 import type { TRPCQueryKey } from '../../internals/getQueryKey';
 
@@ -102,6 +104,13 @@ export interface UseTRPCSuspenseQueryOptions<TOutput, TData, TError>
     >,
     TRPCUseQueryBaseOptions {}
 
+export interface UseTRPCPrefetchQueryOptions<TOutput, TData, TError>
+  extends DistributiveOmit<
+      FetchQueryOptions<TOutput, TError, TData, any>,
+      'queryKey'
+    >,
+    TRPCUseQueryBaseOptions {}
+
 /** @internal **/
 export interface DefinedUseTRPCQueryOptions<
   TOutput,
@@ -140,6 +149,21 @@ export interface UseTRPCInfiniteQueryOptions<TInput, TOutput, TError>
     TRPCUseQueryBaseOptions {
   initialCursor?: ExtractCursorType<TInput>;
 }
+
+export type UseTRPCPrefetchInfiniteQueryOptions<TInput, TOutput, TError> =
+  DistributiveOmit<
+    FetchInfiniteQueryOptions<
+      TOutput,
+      TError,
+      TOutput,
+      any,
+      ExtractCursorType<TInput>
+    >,
+    'queryKey' | 'initialPageParam'
+  > &
+    TRPCUseQueryBaseOptions & {
+      initialCursor?: ExtractCursorType<TInput>;
+    };
 
 export interface UseTRPCSuspenseInfiniteQueryOptions<TInput, TOutput, TError>
   extends DistributiveOmit<
